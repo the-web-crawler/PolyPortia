@@ -143,6 +143,20 @@ model-id patterns (`dummy/echo`, `dummy/fixed/<text>`, `dummy/error/<status>`,
 PolyPortia provider's `api_base: http://localhost:9999` to route requests
 through it.
 
+## Name
+
+*PolyPortia* blends two references:
+
+- **Poly-** from *polyphony* — the simultaneous presence of multiple voices,
+  perspectives, or social viewpoints within a single conversation. This is the
+  council layer: many models reasoning in parallel or in structured dialogue.
+- **Portia** — *Portia* is the genus of jumping spiders renowned as the most
+  intelligent and tactically ruthless hunters in the arachnid world. They
+  improvise, adapt, and exploit every available angle to maximise the chance of
+  success. The name reflects a "hit them with everything you have" philosophy
+  and the goal of squeezing the most intelligence out of whatever models are
+  available.
+
 ## LiteLLM relationship
 
 PolyPortia depends on `litellm` for provider HTTP calls, token counting, and
