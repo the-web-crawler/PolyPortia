@@ -41,7 +41,7 @@ from polyportia.sdk.client import acomplete
 
 
 def test_single_defined_model_completes(live_registry, require_models):
-    require_models("llama3.2:3b")
+    require_models("lfm2.5-thinking:latest")  # thinking role
 
     async def go():
         return await acomplete(
@@ -73,11 +73,11 @@ def test_actual_model_id_passthrough(live_registry, require_models):
     defined-model name), PolyPortia should route it directly to that
     ActualModel without touching the defined-model layer.
     """
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
 
     async def go():
         return await acomplete(
-            model="ollama_chat/llama3.2:1b",
+            model="ollama_chat/gemma4:e2b",
             messages=[{"role": "user", "content": "Say 'hi' and nothing else."}],
             registry=live_registry,
         )

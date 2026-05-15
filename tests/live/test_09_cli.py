@@ -33,7 +33,7 @@ def test_cli_models_ls(live_registry):
     print(f"\n[live#09-models-ls]\n{r.stdout}")
     assert r.exit_code == 0, r.stdout
     assert "thinking" in r.stdout
-    assert "ollama_chat/llama3.2:3b" in r.stdout
+    assert "lfm2.5-thinking" in r.stdout
 
 
 def test_cli_models_show_with_fallback(live_registry):
@@ -55,7 +55,7 @@ def test_cli_councils_ls(live_registry):
 
 
 def test_cli_run(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
     runner = CliRunner()
     r = runner.invoke(
         app,

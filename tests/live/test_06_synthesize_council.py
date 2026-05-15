@@ -34,7 +34,7 @@ from polyportia.server.app import create_app
 
 
 def test_synthesize_council_returns_one_response(live_registry, require_models):
-    require_models("llama3.2:1b", "llama3.2:3b")
+    require_models("gemma4:e2b", "lfm2.5-thinking:latest")
     app = create_app(registry=live_registry)
 
     async def go():

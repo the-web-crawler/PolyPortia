@@ -32,7 +32,7 @@ from polyportia.sdk.client import acomplete
 
 
 def test_first_try_success_records_one_attempt(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
 
     async def go():
         return await acomplete(

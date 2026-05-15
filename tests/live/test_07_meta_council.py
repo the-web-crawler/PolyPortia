@@ -29,7 +29,7 @@ from polyportia.sdk.client import acomplete
 
 
 def test_meta_council_runs_end_to_end(live_registry, require_models):
-    require_models("llama3.2:1b", "llama3.2:3b")
+    require_models("gemma4:e2b", "lfm2.5-thinking:latest")
 
     async def go():
         return await acomplete(

@@ -22,7 +22,7 @@ from polyportia.server.app import create_app
 
 
 def test_trace_endpoint_returns_record(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
     app = create_app(registry=live_registry)
 
     async def go():
@@ -46,9 +46,10 @@ def test_trace_endpoint_returns_record(live_registry, require_models):
     print(f"[live#08] span count: {len(body['spans'])}")
     print(f"[live#08] final_status: {body['final_status']}")
     for span in body["spans"]:
+        latency = span["latency_ms"] or 0
         print(
             f"  - {span['kind']:8s} {span['target_repr']:40s} "
-            f"status={span['status']} latency_ms={span['latency_ms']:.1f if span['latency_ms'] else 0}"
+            f"status={span['status']} latency_ms={latency:.1f}"
         )
 
     assert body["spans"]
@@ -56,7 +57,7 @@ def test_trace_endpoint_returns_record(live_registry, require_models):
 
 
 def test_trace_list(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
     app = create_app(registry=live_registry)
 
     async def go():

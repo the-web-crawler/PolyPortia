@@ -32,7 +32,7 @@ from polyportia.server.app import create_app
 
 
 def test_stream_yields_multiple_chunks(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
     app = create_app(registry=live_registry)
 
     async def go():

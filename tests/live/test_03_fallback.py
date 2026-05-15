@@ -36,7 +36,7 @@ from polyportia.sdk.client import acomplete
 
 
 def test_fallback_kicks_in_when_primary_is_broken(live_registry, require_models):
-    require_models("llama3.2:1b")
+    require_models("gemma4:e2b")
 
     async def go():
         return await acomplete(
