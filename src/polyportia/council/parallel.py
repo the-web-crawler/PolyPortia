@@ -61,9 +61,18 @@ async def _fan_out(
     *,
     timeout_s: float | None,
 ) -> list[MemberOutcome]:
-    return await asyncio.gather(
+    from polyportia.budget.errors import BudgetExceededError
+
+    outcomes = await asyncio.gather(
         *(_run_member(m, messages, ctx, timeout_s=timeout_s) for m in members)
     )
+    # Budget breaches must short-circuit any further fan-in (synthesizer,
+    # next turn) — surface them rather than letting the failure policy
+    # downgrade them to a generic 422.
+    for o in outcomes:
+        if isinstance(o.error, BudgetExceededError):
+            raise o.error
+    return outcomes
 
 
 def _array_envelope_result(
