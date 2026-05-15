@@ -23,10 +23,14 @@ async def strategy_dispatch(
     messages: list[dict[str, Any]],
     ctx: ExecutionContext,
 ) -> ProviderResult:
-    if isinstance(strategy, (ParallelArray, Synthesize)):
-        raise NotImplementedError(
-            "parallel/synthesize council strategies arrive in M2"
-        )
+    if isinstance(strategy, ParallelArray):
+        from polyportia.council.parallel import run_parallel_array
+
+        return await run_parallel_array(strategy, messages, ctx)
+    if isinstance(strategy, Synthesize):
+        from polyportia.council.parallel import run_synthesize
+
+        return await run_synthesize(strategy, messages, ctx)
     if isinstance(strategy, Debate):
         raise NotImplementedError("debate council strategy arrives in M3")
     if isinstance(strategy, ProposeAndReview):

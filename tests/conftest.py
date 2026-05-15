@@ -40,6 +40,32 @@ defined_models:
     fallbacks:
       - {kind: actual, id: openai/gpt-5-5}
       - {kind: defined, name: fast}
+  - name: creative
+    target: {kind: actual, id: openai/gpt-5-5}
+
+councils:
+  - name: triad-raw
+    strategy:
+      kind: parallel_array
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+  - name: triad
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      synthesizer: {kind: defined, name: thinking}
+  - name: meta-council
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: council, name: triad}
+        - {kind: defined, name: creative}
+      synthesizer: {kind: defined, name: thinking}
 """
 
 

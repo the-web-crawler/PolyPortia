@@ -23,14 +23,18 @@ class ExecutionContext:
     max_depth: int = 8
 
     def child(self) -> ExecutionContext:
+        # Copy the visited sets so that concurrent fan-out branches don't
+        # falsely detect each other as cycles. A sequential fallback walk
+        # still sees ancestors because the copy preserves what's currently in
+        # the set at the moment of branching.
         return ExecutionContext(
             registry=self.registry,
             trace=self.trace,
             request_params=self.request_params,
             request_retry=self.request_retry,
             request_timeout_s=self.request_timeout_s,
-            visited_defined=self.visited_defined,
-            visited_council=self.visited_council,
+            visited_defined=set(self.visited_defined),
+            visited_council=set(self.visited_council),
             depth=self.depth + 1,
             max_depth=self.max_depth,
         )

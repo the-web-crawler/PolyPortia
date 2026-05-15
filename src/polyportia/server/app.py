@@ -8,6 +8,7 @@ from polyportia.config.models import PolyPortiaConfig
 from polyportia.config.registry import Registry, get_default_registry
 from polyportia.observability.logging import configure_logging
 from polyportia.observability.store import TraceStore, get_default_store
+from polyportia.server.routes_council import router as council_router
 from polyportia.server.routes_health import router as health_router
 from polyportia.server.routes_openai import router as openai_router
 from polyportia.server.routes_traces import router as traces_router
@@ -41,5 +42,6 @@ def create_app(
 
     app.include_router(health_router)
     app.include_router(openai_router)
+    app.include_router(council_router)
     app.include_router(traces_router)
     return app
