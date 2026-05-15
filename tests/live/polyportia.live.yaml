@@ -1,0 +1,87 @@
+# Live-test config — points everything at a local Ollama server.
+#
+# Model mix (chosen for quality + memory budget):
+#   fast     → gemma4:e2b           (local, 7.2 GB — best local quality)
+#   thinking → lfm2.5-thinking      (local, 731 MB — native reasoning model)
+#   creative → kimi-k2.6:cloud      (Ollama cloud relay — no local VRAM)
+
+providers:
+  - name: ollama
+    api_key: ollama-not-required
+    api_base: ${OLLAMA_BASE_URL:-http://localhost:11434}
+    default_retry:
+      max_retries: 1
+      backoff: linear
+      backoff_base_s: 0.5
+    default_timeout_s: 180
+
+actual_models:
+  - id: ollama_chat/gemma4:e2b
+    provider: ollama
+    context_window: 8192
+    max_output_tokens: 1024
+    supports: [streaming, tools]
+
+  - id: ollama_chat/lfm2.5-thinking:latest
+    provider: ollama
+    context_window: 4096
+    max_output_tokens: 1024
+    supports: [streaming]
+
+  - id: ollama_chat/kimi-k2.6:cloud
+    provider: ollama
+    context_window: 32768
+    max_output_tokens: 2048
+    supports: [streaming, tools]
+
+  # A broken model id used by test_03_fallback to force the primary to fail.
+  - id: ollama_chat/this-model-does-not-exist
+    provider: ollama
+    context_window: 1024
+    max_output_tokens: 64
+
+defined_models:
+  - name: fast
+    target: {kind: actual, id: ollama_chat/gemma4:e2b}
+
+  - name: thinking
+    target: {kind: actual, id: ollama_chat/lfm2.5-thinking:latest}
+    fallbacks:
+      - {kind: actual, id: ollama_chat/gemma4:e2b}
+
+  - name: creative
+    target: {kind: actual, id: ollama_chat/kimi-k2.6:cloud}
+    fallbacks:
+      - {kind: defined, name: fast}
+
+  # test_03_fallback: primary broken on purpose, fallback to fast succeeds.
+  - name: brittle
+    target: {kind: actual, id: ollama_chat/this-model-does-not-exist}
+    fallbacks:
+      - {kind: defined, name: fast}
+
+councils:
+  - name: trio-raw
+    strategy:
+      kind: parallel_array
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+
+  - name: trio
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      synthesizer: {kind: defined, name: fast}
+
+  - name: meta
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: council, name: trio}
+        - {kind: defined, name: fast}
+      synthesizer: {kind: defined, name: fast}

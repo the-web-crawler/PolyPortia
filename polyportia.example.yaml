@@ -1,0 +1,116 @@
+providers:
+  - name: anthropic
+    api_key: ${ANTHROPIC_API_KEY}
+    default_retry:
+      max_retries: 2
+      retry_on: [timeout, rate_limit, server_error, connection]
+      backoff: exponential
+      backoff_base_s: 1.0
+    default_timeout_s: 60
+
+  - name: openai
+    api_key: ${OPENAI_API_KEY}
+    default_timeout_s: 45
+
+actual_models:
+  - id: anthropic/claude-opus-4-7
+    provider: anthropic
+    context_window: 200000
+    max_output_tokens: 8192
+    input_cost_per_1m_tokens: 15.00
+    output_cost_per_1m_tokens: 75.00
+    supports: [streaming, tools, vision]
+
+  - id: anthropic/claude-haiku-4-5
+    provider: anthropic
+    context_window: 200000
+    max_output_tokens: 8192
+    input_cost_per_1m_tokens: 0.80
+    output_cost_per_1m_tokens: 4.00
+    supports: [streaming, tools]
+
+  - id: openai/gpt-5-5
+    provider: openai
+    context_window: 128000
+    max_output_tokens: 16384
+    input_cost_per_1m_tokens: 5.00
+    output_cost_per_1m_tokens: 15.00
+    supports: [streaming, tools, vision, json_mode]
+
+defined_models:
+  - name: fast
+    target: {kind: actual, id: anthropic/claude-haiku-4-5}
+    fallbacks:
+      - {kind: actual, id: openai/gpt-5-5}
+
+  - name: thinking
+    target: {kind: actual, id: anthropic/claude-opus-4-7}
+    params:
+      max_tokens: 4096
+    fallbacks:
+      - {kind: actual, id: openai/gpt-5-5}
+      - {kind: defined, name: fast}
+    retry:
+      max_retries: 3
+      backoff: exponential
+
+  - name: creative
+    target: {kind: actual, id: openai/gpt-5-5}
+    params:
+      temperature: 1.1
+
+councils:
+  - name: triad-raw
+    strategy:
+      kind: parallel_array
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+
+  - name: triad
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      synthesizer: {kind: defined, name: thinking}
+
+  - name: debate-pair
+    strategy:
+      kind: debate
+      members:
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      debate:
+        visibility: prompt_and_peer_responses
+        turns: 3
+        termination: fixed_turns
+      output: synthesize
+      synthesizer: {kind: defined, name: thinking}
+
+  # Wrap a coding model with a reviewer panel that must approve any tool call
+  # before it is forwarded to the caller. Reviewers use synthetic
+  # approve/deny/insight tools; on a non-approve verdict, the proposer is
+  # re-prompted with the combined feedback as tool results.
+  - name: safe-coder
+    strategy:
+      kind: propose_review
+      proposer: {kind: defined, name: thinking}
+      reviewers:
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      consensus: all
+      max_revisions: 2
+      on_denial: return_denial
+      output: proposal
+
+  # Recursion: a council whose synthesizer is itself a named council
+  - name: meta-council
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: council, name: triad}
+        - {kind: defined, name: thinking}
+      synthesizer: {kind: council, name: triad}
