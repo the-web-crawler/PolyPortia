@@ -201,6 +201,7 @@ class PolyPortiaConfig(_Strict):
     councils: list[CouncilSpec] = Field(default_factory=list)
     failure: FailurePolicy = Field(default_factory=FailurePolicy)
     server: ServerConfig = Field(default_factory=ServerConfig)
+    budget_usd_default: float | None = None
 
 
 _ns: dict[str, Any] = {

@@ -33,6 +33,7 @@ class Registry:
         self._councils: dict[str, CouncilSpec] = {}
         self._failure = FailurePolicy()
         self._server = ServerConfig()
+        self._budget_usd_default: float | None = None
         if config is not None:
             self.load(config)
 
@@ -52,6 +53,7 @@ class Registry:
                 self._councils[c.name] = c
             self._failure = config.failure
             self._server = config.server
+            self._budget_usd_default = config.budget_usd_default
             self._validate()
 
     def _validate(self) -> None:
@@ -128,6 +130,10 @@ class Registry:
     @property
     def server(self) -> ServerConfig:
         return self._server
+
+    @property
+    def budget_usd_default(self) -> float | None:
+        return self._budget_usd_default
 
 
 _default_registry: Registry = Registry()

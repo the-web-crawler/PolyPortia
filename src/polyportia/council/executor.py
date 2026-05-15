@@ -91,6 +91,9 @@ async def _call_actual(
     if defined is not None:
         merged_params = {**defined.params, **merged_params}
 
+    if ctx.budget is not None and ctx.budget.enabled:
+        ctx.budget.check_or_raise()
+
     with ctx.trace.span(kind="actual", target_repr=actual.id) as span:
         span.effective_retry_source = retry.source
         span.effective_timeout_source = timeout.source
@@ -114,6 +117,9 @@ async def _call_actual(
             span.prompt_tokens = result.usage.prompt_tokens
             span.completion_tokens = result.usage.completion_tokens
         span.cost_usd = estimate_cost_usd(actual, result.usage)
+        if ctx.budget is not None and ctx.budget.enabled:
+            ctx.budget.record_spent(span.cost_usd)
+            ctx.budget.check_or_raise()
         return result
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from polyportia.budget.enforcer import BudgetEnforcer
 from polyportia.config.models import RetryPolicy
 from polyportia.config.registry import Registry
 from polyportia.observability.trace import TraceBuilder
@@ -21,6 +22,7 @@ class ExecutionContext:
     visited_council: set[str] = field(default_factory=set)
     depth: int = 0
     max_depth: int = 8
+    budget: BudgetEnforcer | None = None
 
     def child(self) -> ExecutionContext:
         # Copy the visited sets so that concurrent fan-out branches don't
@@ -37,6 +39,7 @@ class ExecutionContext:
             visited_council=set(self.visited_council),
             depth=self.depth + 1,
             max_depth=self.max_depth,
+            budget=self.budget,  # shared across branches: enforces global cap
         )
 
 

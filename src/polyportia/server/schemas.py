@@ -19,6 +19,8 @@ class PolyPortiaOverrides(BaseModel):
     timeout_s: float | None = None
     on_failure: Literal["continue", "fail", "retry"] | None = None
     response_format: Literal["openai", "array"] | None = None
+    budget_usd: float | Literal["unlimited"] | None = None
+    include_cost: bool = False
 
 
 class ChatMessage(_Open):

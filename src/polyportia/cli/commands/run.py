@@ -37,9 +37,10 @@ def run(
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": message})
 
-    result, trace_id = asyncio.run(
-        acomplete(model=name_or_id, messages=messages)
+    sdk_result = asyncio.run(
+        acomplete(model=name_or_id, messages=messages, budget_usd="unlimited")
     )
+    result, trace_id = sdk_result[0], sdk_result[1]
     console = Console()
     console.print(result.content or "")
     if show_trace_id:

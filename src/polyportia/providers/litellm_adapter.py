@@ -66,8 +66,17 @@ def _build_kwargs(
 
 def _extract_content(response: Any) -> str:
     try:
-        choice = response.choices[0]
-        msg = getattr(choice, "message", None) or choice["message"]
+        choices = getattr(response, "choices", None)
+        if choices is None and isinstance(response, dict):
+            choices = response.get("choices")
+        if not choices:
+            return ""
+        choice = choices[0]
+        msg = getattr(choice, "message", None)
+        if msg is None and isinstance(choice, dict):
+            msg = choice.get("message")
+        if msg is None:
+            return ""
         content = getattr(msg, "content", None)
         if content is None and isinstance(msg, dict):
             content = msg.get("content")
@@ -78,8 +87,16 @@ def _extract_content(response: Any) -> str:
 
 def _extract_finish(response: Any) -> str | None:
     try:
-        value = response.choices[0].finish_reason
-    except (AttributeError, IndexError):
+        choices = getattr(response, "choices", None)
+        if choices is None and isinstance(response, dict):
+            choices = response.get("choices")
+        if not choices:
+            return None
+        first = choices[0]
+        value = getattr(first, "finish_reason", None)
+        if value is None and isinstance(first, dict):
+            value = first.get("finish_reason")
+    except (AttributeError, IndexError, KeyError, TypeError):
         return None
     return value if value is None or isinstance(value, str) else str(value)
 

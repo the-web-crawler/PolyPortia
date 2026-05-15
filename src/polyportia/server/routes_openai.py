@@ -9,6 +9,9 @@ from typing import Any, cast
 from fastapi import APIRouter, HTTPException, Request, Response
 from sse_starlette.sse import EventSourceResponse
 
+from polyportia.budget.enforcer import BudgetEnforcer
+from polyportia.budget.errors import BudgetExceededError
+from polyportia.budget.estimator import estimate_cost
 from polyportia.config.models import ActualModelRef, DefinedModelRef
 from polyportia.config.registry import Registry, get_default_registry
 from polyportia.council.context import ExecutionContext
@@ -54,12 +57,31 @@ def _extract_overrides(req: ChatCompletionsRequest) -> dict[str, Any]:
     return {
         "retry": overrides.retry if overrides else None,
         "timeout_s": overrides.timeout_s if overrides else None,
+        "budget_usd": overrides.budget_usd if overrides else None,
+        "include_cost": overrides.include_cost if overrides else False,
     }
 
 
 def _passthrough_params(req: ChatCompletionsRequest) -> dict[str, Any]:
     excluded = {"model", "messages", "stream", "polyportia"}
     return {k: v for k, v in req.model_dump(exclude_none=True).items() if k not in excluded}
+
+
+def _resolve_budget(request_value: Any, registry: Registry) -> float | None:
+    """Apply the cascade: request-override > config default. ``"unlimited"`` disables."""
+    if request_value == "unlimited":
+        return None
+    if isinstance(request_value, (int, float)):
+        return float(request_value)
+    return registry.budget_usd_default
+
+
+def _sum_trace_cost(trace: TraceBuilder) -> float:
+    total = 0.0
+    for s in trace.record.spans:
+        if s.cost_usd is not None:
+            total += float(s.cost_usd)
+    return total
 
 
 @router.post("/v1/chat/completions")
@@ -95,15 +117,49 @@ async def chat_completions(req: ChatCompletionsRequest, request: Request) -> Res
         return EventSourceResponse(gen())
 
     trace = TraceBuilder({"model": req.model, "message_count": len(req.messages)})
+    budget_value = _resolve_budget(overrides["budget_usd"], reg)
+    estimate = estimate_cost(target, messages, request_params, reg)
+
+    if budget_value is not None and estimate.total_usd > budget_value:
+        exc = BudgetExceededError(
+            f"Predicted ${estimate.total_usd:.6f} exceeds budget ${budget_value:.6f}",
+            stage="pre_flight",
+            budget_usd=budget_value,
+            predicted_usd=estimate.total_usd,
+            breakdown=estimate.breakdown,
+        )
+        return Response(
+            content=json.dumps(exc.to_envelope()),
+            status_code=402,
+            media_type="application/json",
+            headers={"x-polyportia-cost-predicted-usd": f"{estimate.total_usd:.6f}"},
+        )
+
+    enforcer = BudgetEnforcer(budget_usd=budget_value)
     ctx = ExecutionContext(
         registry=reg,
         trace=trace,
         request_params=request_params,
         request_retry=overrides["retry"],
         request_timeout_s=overrides["timeout_s"],
+        budget=enforcer,
     )
     try:
         result = await execute_target(target, messages, ctx)
+    except BudgetExceededError as e:
+        store.add(trace.finalize())
+        envelope = e.to_envelope()
+        envelope["error"]["actual_usd_so_far"] = enforcer.spent_usd
+        return Response(
+            content=json.dumps(envelope),
+            status_code=402,
+            media_type="application/json",
+            headers={
+                "x-polyportia-trace-id": trace.trace_id,
+                "x-polyportia-cost-usd": f"{enforcer.spent_usd:.6f}",
+                "x-polyportia-cost-predicted-usd": f"{estimate.total_usd:.6f}",
+            },
+        )
     except (RetryableExhaustedError, FallbacksExhaustedError) as e:
         store.add(trace.finalize())
         raise HTTPException(status_code=502, detail=str(e)) from e
@@ -112,8 +168,19 @@ async def chat_completions(req: ChatCompletionsRequest, request: Request) -> Res
         raise
     store.add(trace.finalize())
 
+    actual_cost = _sum_trace_cost(trace)
     body = _to_openai_response(result, model=req.model)
-    headers = {"x-polyportia-trace-id": trace.trace_id}
+    if overrides["include_cost"]:
+        body.setdefault("polyportia", {})["cost"] = {
+            "actual_usd": actual_cost,
+            "predicted_usd": estimate.total_usd,
+            "by_model": estimate.to_dict()["breakdown"],
+        }
+    headers = {
+        "x-polyportia-trace-id": trace.trace_id,
+        "x-polyportia-cost-usd": f"{actual_cost:.6f}",
+        "x-polyportia-cost-predicted-usd": f"{estimate.total_usd:.6f}",
+    }
     return Response(
         content=json.dumps(body),
         media_type="application/json",
