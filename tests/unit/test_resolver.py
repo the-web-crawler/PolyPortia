@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from polyportia.config.models import ActualModel, ActualModelRef, DefinedModel, DefinedModelRef
-from polyportia.config.resolver import resolve, resolve_for_model
 from polyportia.config.registry import Registry, RegistryError
+from polyportia.config.resolver import resolve, resolve_for_model
 
 
 def test_resolve_actual_ref(test_registry: Registry):

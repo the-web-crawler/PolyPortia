@@ -21,7 +21,7 @@ class FakeBadRequest(Exception):
 
 
 def test_classify_known_categories():
-    assert classify(asyncio.TimeoutError()) == "timeout"
+    assert classify(TimeoutError()) == "timeout"
     assert classify(FakeRateLimit()) == "rate_limit"
     assert classify(FakeBadRequest()) == "bad_request"
 
@@ -52,14 +52,14 @@ def test_call_with_retries_succeeds_after_failure(mock_provider, test_registry):
 
     # First attempt fails (timeout), second succeeds.
     mock_provider.set_sequence(
-        actual.id, [asyncio.TimeoutError(), object()]
+        actual.id, [TimeoutError(), object()]
     )
 
     # second call should return mock response from default handler — we'll
     # rebuild the sequence to use a real mock response on success.
     from tests.conftest import make_mock_response
     mock_provider.set_sequence(
-        actual.id, [asyncio.TimeoutError(), make_mock_response("after-retry")]
+        actual.id, [TimeoutError(), make_mock_response("after-retry")]
     )
 
     result = asyncio.run(

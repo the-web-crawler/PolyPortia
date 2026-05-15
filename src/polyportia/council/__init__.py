@@ -1,8 +1,4 @@
-"""Council strategy dispatcher.
-
-In M1 only the model paths (ActualModel/DefinedModel) are implemented; the
-council strategies raise NotImplementedError until M2/M3 fills them in.
-"""
+"""Council strategy dispatcher."""
 
 from __future__ import annotations
 
@@ -32,7 +28,11 @@ async def strategy_dispatch(
 
         return await run_synthesize(strategy, messages, ctx)
     if isinstance(strategy, Debate):
-        raise NotImplementedError("debate council strategy arrives in M3")
+        from polyportia.council.debate import run_debate
+
+        return await run_debate(strategy, messages, ctx)
     if isinstance(strategy, ProposeAndReview):
-        raise NotImplementedError("propose_review council strategy arrives in M3")
+        from polyportia.council.propose_review import run_propose_review
+
+        return await run_propose_review(strategy, messages, ctx)
     raise TypeError(f"unhandled strategy: {type(strategy).__name__}")

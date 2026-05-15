@@ -1,0 +1,94 @@
+# Live-test config — points everything at a local Ollama server.
+#
+# Edit the model ids below if you have different models pulled. LiteLLM uses
+# the "ollama_chat/<model>" prefix to route to Ollama's chat endpoint; you can
+# also use "ollama/<model>" for the legacy /api/generate endpoint, but
+# ollama_chat is preferred for chat-style messages.
+
+providers:
+  - name: ollama
+    # Ollama doesn't need an API key, but PolyPortia will skip the api_key
+    # field cleanly if it's omitted. We give it a literal placeholder to make
+    # the structured trace clearer; LiteLLM ignores it for the ollama route.
+    api_key: ollama-not-required
+    api_base: ${OLLAMA_BASE_URL:-http://localhost:11434}
+    default_retry:
+      max_retries: 1
+      backoff: linear
+      backoff_base_s: 0.5
+    default_timeout_s: 120
+
+actual_models:
+  - id: ollama_chat/llama3.2:1b
+    provider: ollama
+    context_window: 4096
+    max_output_tokens: 1024
+    supports: [streaming, tools]
+
+  - id: ollama_chat/llama3.2:3b
+    provider: ollama
+    context_window: 4096
+    max_output_tokens: 1024
+    supports: [streaming, tools]
+
+  - id: ollama_chat/mistral:7b
+    provider: ollama
+    context_window: 8192
+    max_output_tokens: 1024
+    supports: [streaming, tools]
+
+  # An obviously-broken model id, used by test_03_fallback to force the
+  # primary call to fail so the fallback chain kicks in.
+  - id: ollama_chat/this-model-does-not-exist
+    provider: ollama
+    context_window: 1024
+    max_output_tokens: 64
+
+defined_models:
+  - name: fast
+    target: {kind: actual, id: ollama_chat/llama3.2:1b}
+
+  - name: thinking
+    target: {kind: actual, id: ollama_chat/llama3.2:3b}
+    fallbacks:
+      - {kind: actual, id: ollama_chat/llama3.2:1b}
+
+  - name: creative
+    target: {kind: actual, id: ollama_chat/mistral:7b}
+    fallbacks:
+      # Fall back to llama if mistral isn't pulled.
+      - {kind: defined, name: thinking}
+
+  # Used by test_03_fallback — primary is broken on purpose; the fallback
+  # to "fast" should always succeed. This proves a defined-model fallback
+  # actually fires against a real provider.
+  - name: brittle
+    target: {kind: actual, id: ollama_chat/this-model-does-not-exist}
+    fallbacks:
+      - {kind: defined, name: fast}
+
+councils:
+  - name: trio-raw
+    strategy:
+      kind: parallel_array
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+
+  - name: trio
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: defined, name: fast}
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      synthesizer: {kind: defined, name: thinking}
+
+  - name: meta
+    strategy:
+      kind: synthesize
+      members:
+        - {kind: council, name: trio}
+        - {kind: defined, name: fast}
+      synthesizer: {kind: defined, name: thinking}

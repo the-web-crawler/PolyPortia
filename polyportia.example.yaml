@@ -77,6 +77,35 @@ councils:
         - {kind: defined, name: creative}
       synthesizer: {kind: defined, name: thinking}
 
+  - name: debate-pair
+    strategy:
+      kind: debate
+      members:
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      debate:
+        visibility: prompt_and_peer_responses
+        turns: 3
+        termination: fixed_turns
+      output: synthesize
+      synthesizer: {kind: defined, name: thinking}
+
+  # Wrap a coding model with a reviewer panel that must approve any tool call
+  # before it is forwarded to the caller. Reviewers use synthetic
+  # approve/deny/insight tools; on a non-approve verdict, the proposer is
+  # re-prompted with the combined feedback as tool results.
+  - name: safe-coder
+    strategy:
+      kind: propose_review
+      proposer: {kind: defined, name: thinking}
+      reviewers:
+        - {kind: defined, name: thinking}
+        - {kind: defined, name: creative}
+      consensus: all
+      max_revisions: 2
+      on_denial: return_denial
+      output: proposal
+
   # Recursion: a council whose synthesizer is itself a named council
   - name: meta-council
     strategy:

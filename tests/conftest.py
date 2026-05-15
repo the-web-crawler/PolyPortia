@@ -12,7 +12,6 @@ from polyportia.config.loader import load_config_from_string
 from polyportia.config.models import PolyPortiaConfig
 from polyportia.config.registry import Registry
 
-
 _TEST_YAML = """
 providers:
   - name: anthropic

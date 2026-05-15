@@ -19,6 +19,8 @@ SpanKind = Literal[
     "synthesize",
     "debate",
     "debate_turn",
+    "propose_review",
+    "propose_review_round",
 ]
 SpanStatus = Literal["ok", "error", "timeout", "skipped", "fellback"]
 

@@ -6,15 +6,14 @@ import asyncio
 
 import pytest
 
+from polyportia.config.models import ActualModelRef, DefinedModel, DefinedModelRef
 from polyportia.council.context import ExecutionContext
 from polyportia.council.executor import (
     CyclicDefinedModelError,
     FallbacksExhaustedError,
     execute_target,
 )
-from polyportia.config.models import DefinedModel, DefinedModelRef, ActualModelRef
 from polyportia.observability.trace import TraceBuilder
-from tests.conftest import make_mock_response
 
 
 class FakeRateLimit(Exception):
@@ -98,9 +97,8 @@ def test_cyclic_defined_chain_raises(mock_provider):
     """Construct a cycle: A → fallback B → fallback A."""
     from polyportia.config.models import (
         ActualModel,
-        DefinedModel,
-        ProviderConfig,
         PolyPortiaConfig,
+        ProviderConfig,
     )
     from polyportia.config.registry import Registry
 

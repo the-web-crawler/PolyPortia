@@ -141,9 +141,10 @@ class ProposeAndReview(_Strict):
     unified tool-call surface.
 
     ``consensus`` combines verdicts: ``"all"`` requires every reviewer to
-    approve, ``"any"`` requires one, an integer N requires at least N approvals.
-    Insights count as approvals by default but the original message is still
-    shown to the proposer in any revision round.
+    approve, ``"any"`` requires one, ``"majority"`` requires more than half, and
+    an integer N requires at least N approvals. By default, ``insight`` does
+    NOT count as approval — it sends the proposer back to revise with the
+    reviewer's feedback as a tool result.
 
     On denial, ``on_denial`` controls the behaviour: ``return_denial`` (caller
     sees the denial + suggestions), ``revise`` (proposer re-runs up to
@@ -153,8 +154,8 @@ class ProposeAndReview(_Strict):
     kind: Literal["propose_review"] = "propose_review"
     proposer: "ResolvableTarget"
     reviewers: list["ResolvableTarget"]
-    consensus: Literal["all", "any"] | int = "all"
-    insight_counts_as_approval: bool = True
+    consensus: Literal["all", "any", "majority"] | int = "all"
+    insight_counts_as_approval: bool = False
     review_prompt: str | None = None
     verdict_format: Literal["tool_calls", "keyword"] = "tool_calls"
     on_denial: Literal["return_denial", "revise", "fail"] = "return_denial"

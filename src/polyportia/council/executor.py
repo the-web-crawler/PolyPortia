@@ -13,6 +13,7 @@ from typing import Any
 from polyportia.config.models import (
     ActualModel,
     ActualModelRef,
+    CouncilRef,
     Debate,
     DefinedModel,
     DefinedModelRef,
@@ -22,6 +23,7 @@ from polyportia.config.models import (
     Synthesize,
 )
 from polyportia.config.policy import resolve_retry, resolve_timeout
+from polyportia.config.registry import Registry
 from polyportia.config.resolver import resolve, resolve_for_model
 from polyportia.council.context import ExecutionContext, RecursionDepthExceeded
 from polyportia.observability.cost import estimate_cost_usd
@@ -135,7 +137,11 @@ async def _call_defined(
                 chain_repr.append(_target_repr(entry))
                 try:
                     return await _execute_chain_entry(entry, defined, messages, ctx)
-                except (RetryableExhaustedError, FallbacksExhaustedError) as e:
+                except (
+                    RetryableExhaustedError,
+                    FallbacksExhaustedError,
+                    CyclicDefinedModelError,
+                ) as e:
                     last_error = e
                     continue
             defined_span.status = "error"
@@ -172,3 +178,24 @@ async def _execute_chain_entry(
     if isinstance(resolved, DefinedModel):
         return await _call_defined(resolved, messages, child)
     raise TypeError(f"chain entry resolved to unexpected type: {type(resolved).__name__}")
+
+
+def resolve_request_model(model: str, registry: Registry) -> ResolvableTarget:
+    """Convert an incoming ``model`` string to a ResolvableTarget.
+
+    Precedence: DefinedModel name → Council name → registered ActualModel id →
+    literal ``provider/model`` id (passed through verbatim to LiteLLM, must be
+    a known LiteLLM model).
+    """
+    if registry.has_defined_model(model):
+        return DefinedModelRef(name=model)
+    if registry.has_council(model):
+        return CouncilRef(name=model)
+    if registry.has_actual_model(model):
+        return ActualModelRef(id=model)
+    if "/" in model:
+        return ActualModelRef(id=model)
+    raise ValueError(
+        f"unknown model or alias: '{model}'. Define it as a DefinedModel, "
+        "Council, or ActualModel, or pass a literal 'provider/model' identifier."
+    )

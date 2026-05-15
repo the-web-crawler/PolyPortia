@@ -8,9 +8,7 @@ import pytest
 
 from polyportia.config.models import (
     CouncilRef,
-    DefinedModelRef,
     FailurePolicy,
-    ParallelArray,
 )
 from polyportia.council.context import ExecutionContext
 from polyportia.council.executor import execute_target

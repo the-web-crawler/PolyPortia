@@ -3,7 +3,6 @@ from __future__ import annotations
 from polyportia.config.models import (
     ActualModel,
     DefinedModel,
-    DefinedModelRef,
     ProviderConfig,
     RetryPolicy,
 )

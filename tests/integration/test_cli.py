@@ -10,7 +10,6 @@ from polyportia.cli.app import app
 from polyportia.config.loader import load_config_from_string
 from polyportia.config.registry import Registry, set_default_registry
 
-
 _TEST_YAML = """
 providers:
   - name: anthropic
