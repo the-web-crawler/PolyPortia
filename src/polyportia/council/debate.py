@@ -33,15 +33,25 @@ from polyportia.council.failure import (
 from polyportia.providers.base import ProviderResult
 
 _DEFAULT_CRITIQUE_PROMPT = """\
-You previously answered:
+The original question has been answered by multiple AI panelists. Below is \
+the conversation so far. Other panelists are identified by their model name; \
+"your prior answer" refers to your own previous output.
+
+Your prior answer:
 {{own_prior}}
 
-Other panelists answered:
+Other panelists' answers:
 {{peer_responses}}
 
-Critique your prior answer in light of theirs. Identify errors, missing \
-considerations, and stronger arguments. Then produce a revised, final answer. \
-Return only the revised final answer.
+You are now playing devil's advocate. Read every answer carefully — \
+including your own — and look for loopholes: weak arguments, hidden \
+assumptions, missing considerations, edge cases, counterexamples, factual \
+errors, or alternative interpretations. Be adversarial; assume each answer \
+is wrong somewhere and find where.
+
+First, list the loopholes you found, indicating which answer each appears \
+in (your own or a specific panelist's). Then produce a revised answer to \
+the original question that survives your own critique.
 """
 
 _JUDGE_PROMPT = """\
@@ -52,6 +62,35 @@ single word DONE. Otherwise reply CONTINUE.
 
 Latest responses:
 {{responses}}
+"""
+
+_DEBATE_FINAL_SYNTH_PROMPT = """\
+Multiple AI panelists have just finished debating the original question, \
+critiquing each other across several turns. Below are their final answers, \
+each labelled with the model that produced it. Each answer may contain \
+both the panelist's loophole notes from its last critique and its final \
+revised answer; treat the revised answer as the panelist's substantive \
+position.
+
+Original question:
+{{user_prompt}}
+
+Final panelist answers:
+{{responses}}
+
+Combine the panelists' final answers into a single inclusive response to \
+the original question. Include every distinct point or piece of information \
+at least one panelist raised; do not filter based on your own judgement of \
+which is correct.
+
+When panelists still contradict each other after the debate, flag the \
+disagreement explicitly and attribute the conflicting claims to the \
+specific models (e.g. "Model A says X, while Model B says Y"). Where they \
+agree, present the shared answer without attribution.
+
+Write your output as a direct reply to the original question — not as a \
+meta-summary of the debate. Do not refer to "the panelists" or "the \
+debate" except when flagging a contradiction.
 """
 
 
@@ -297,7 +336,7 @@ async def run_debate(
             base_messages=base_messages,
             members=members,
             outcomes=outcomes,
-            template=None,
+            template=_DEBATE_FINAL_SYNTH_PROMPT,
             include_names=True,
         )
         return await execute_target(spec.synthesizer, synth_messages, ctx.child())

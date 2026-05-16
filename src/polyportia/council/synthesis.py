@@ -12,17 +12,29 @@ from polyportia.config.models import (
 )
 from polyportia.council.failure import MemberOutcome
 
-_DEFAULT_SYNTH_PROMPT = """You are synthesising the responses of multiple AI \
-panelists who all answered the same prompt. Read every panelist's answer \
-carefully, identify points of agreement and disagreement, weigh evidence and \
-reasoning quality, and then produce a single best response that incorporates \
-the strongest insights. Return only the final synthesised answer.
+_DEFAULT_SYNTH_PROMPT = """\
+Below are responses from multiple AI panelists, each labelled with the model \
+that produced it. They were all asked the same question.
 
-Original prompt:
+Original question:
 {{user_prompt}}
 
 Panelist responses:
 {{responses}}
+
+Combine the panelists' answers into a single inclusive response to the \
+original question. Include every distinct point or piece of information at \
+least one panelist raised; do not filter based on your own judgement of \
+which is correct.
+
+When panelists contradict each other on a specific point, flag the \
+disagreement explicitly and attribute the conflicting claims to the specific \
+models that made them (e.g. "Model A says X, while Model B says Y"). Where \
+the panelists agree, present the shared answer without attribution.
+
+Write your output as a direct reply to the original question — not as a \
+meta-summary about the panel. Do not say things like "the panelists agreed \
+that…" except when explicitly flagging a contradiction.
 """
 
 

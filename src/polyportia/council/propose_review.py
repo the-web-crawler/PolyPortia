@@ -70,14 +70,22 @@ _REVIEWER_TOOLS: list[dict[str, Any]] = [
 ]
 
 _DEFAULT_REVIEWER_PROMPT = """\
-Another model has proposed a tool call (shown in the assistant message above) \
-to fulfill the original request. You are a reviewer. Inspect the proposed \
-tool call carefully. Decide whether to:
-  - approve: the proposal is correct and safe to execute,
-  - deny: the proposal is incorrect or unsafe; explain why,
-  - insight: the proposal needs revision; explain what.
+The proposing model has emitted one or more tool calls in a single assistant \
+turn (shown above) to fulfill the original request. A model may issue \
+several tool calls at once; review them together, since they will be \
+executed as a batch if approved. Inspect every proposed call carefully — \
+its name, arguments, and likely effect.
 
-You MUST respond by calling exactly one of the tools: approve, deny, insight.
+Cast your verdict by INVOKING (calling) exactly one of the following review \
+tools. Writing the tool's name in a plain text reply does NOT count — you \
+must make an actual tool call:
+
+  - approve: every proposed call is correct and safe to execute.
+  - deny: at least one proposed call is incorrect or unsafe; provide a reason.
+  - insight: the proposal needs revision; explain what to change.
+
+Do not invoke any of the proposer's tools, and do not produce a text reply \
+in place of a tool call. Issue exactly one review tool call.
 """
 
 
