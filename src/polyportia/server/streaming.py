@@ -80,7 +80,8 @@ async def stream_single_model(
     actual, defined = _resolve_to_actual(target, registry)
     provider = registry.get_provider(actual.provider)
     timeout = resolve_timeout(
-        request=request_timeout_s, defined=defined, actual=actual, provider=provider
+        request=request_timeout_s, defined=defined, actual=actual, provider=provider,
+        for_streaming=True,
     )
     merged_params: dict[str, Any] = {**request_params}
     if defined is not None:
