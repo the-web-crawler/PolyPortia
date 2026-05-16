@@ -53,6 +53,7 @@ def resolve_timeout(
     defined: DefinedModel | None,
     actual: ActualModel | None,
     provider: ProviderConfig | None,
+    for_streaming: bool = False,
 ) -> ResolvedTimeout:
     if request is not None:
         return ResolvedTimeout(request, "request")
@@ -60,6 +61,12 @@ def resolve_timeout(
         return ResolvedTimeout(defined.timeout_s, "defined")
     if actual is not None and actual.timeout_s is not None:
         return ResolvedTimeout(actual.timeout_s, "actual")
-    if provider is not None:
+    # For streaming calls, skip the provider default: asyncio.wait_for() on the
+    # initial acompletion() awaitable only guards until the provider sends HTTP
+    # headers, not until generation is complete. When a provider like Ollama
+    # queues requests (OLLAMA_NUM_PARALLEL=1), concurrent callers exhaust this
+    # budget waiting in the queue rather than generating, causing premature
+    # TimeoutError. Explicit request/model-level timeouts are still respected.
+    if provider is not None and not for_streaming:
         return ResolvedTimeout(provider.default_timeout_s, "provider")
     return ResolvedTimeout(None, "default")
